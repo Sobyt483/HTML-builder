@@ -12,22 +12,29 @@ const errorCb = (err) => {
 
 fs.mkdir(projectPath, {recursive:true}, errorCb);
 
-const copyFiles = (dirpath, newPath) => {
-  fs.mkdir(newAssetsPath, {recursive:true}, (error) => {
-    errorCb(error);
-    fs.promises.readdir(dirpath, options).then((data) => {
-      data.forEach((el) => {
-        if (!el.isFile()){
-          fs.mkdir(path.join(newPath, el.name), {recursive:true}, errorCb);
-          copyFiles(path.join(dirpath, el.name), path.join(newPath, el.name));
-        } else{
-          fs.copyFile(path.join(dirpath, el.name), path.join(newPath, el.name), errorCb);
-        }
-      });
+const copyFiles = (dir, newDir) =>{
+  fs.mkdir(newDir, { recursive: true }, errorCb);
+  fs.promises.readdir(dir, options).then((data) => {
+    data.forEach((el) => {
+      if (!el.isFile()){
+        fs.mkdir(path.join(newDir, el.name), {recursive:true}, errorCb);
+        copyFiles(path.join(dir, el.name), path.join(newDir, el.name));
+      } else{
+        fs.copyFile(path.join(dir, el.name), path.join(newDir, el.name), errorCb);
+      }
     });
   });
 };
-copyFiles(assetsPath, newAssetsPath);
+
+const copyFolder = (dir, newDir) => {
+  fs.rm(newDir , {recursive: true}, err => {
+    if(err){
+      copyFiles(dir, newDir);
+    }else{
+      copyFiles(dir, newDir);
+    }
+  });
+};
 
 const bundlePath = path.join(__dirname, 'project-dist', 'style.css');
 const stylesPath = path.join(__dirname, 'styles');
@@ -59,10 +66,11 @@ fs.promises.readdir(componentsPath, options).then((data) => {
         const writeHtmlStream = fs.createWriteStream(htmlPath);
         const res = data.toString();
         const name = el.name.replace(path.extname(el.name), '');
-        console.log(name);
         template[0] = template[0].replace(`{{${name}}}`, res);
         writeHtmlStream.write(template.join(''));
       });
     }
   });
 });
+
+copyFolder(assetsPath, newAssetsPath);
